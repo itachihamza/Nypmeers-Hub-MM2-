@@ -1,22 +1,92 @@
--- Basit Universal ESP
-for _, player in pairs(game.Players:GetPlayers()) do
-	if player ~= game.Players.LocalPlayer then
-		local esp = Drawing.new("Text")
-		esp.Text = player.Name
-		esp.Size = 16
-		esp.Color = Color3.new(1, 0, 0)
-		esp.Center = true
-		esp.Outline = true
-		esp.Visible = true
+-- D-DAY Script'i indir
+local originalScript = game:HttpGet("https://raw.githubusercontent.com/itachihamza/Nypmeers-Hub-MM2-/refs/heads/main/D-DAY")
 
-		game:GetService("RunService").RenderStepped:Connect(function()
-			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				local pos, onscreen = workspace.CurrentCamera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-				esp.Position = Vector2.new(pos.X, pos.Y)
-				esp.Visible = onscreen
-			else
-				esp.Visible = false
-			end
-		end)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local mouse = LocalPlayer:GetMouse()
+
+-- Highlight ESP fonksiyonu
+local function addHighlightESP(player)
+	if player == LocalPlayer then return end
+	local function apply()
+		if player.Character and not player.Character:FindFirstChild("ESP_Highlight") then
+			local highlight = Instance.new("Highlight")
+			highlight.Name = "ESP_Highlight"
+			highlight.FillColor = Color3.new(1, 0, 0)
+			highlight.OutlineColor = Color3.new(1, 1, 1)
+			highlight.FillTransparency = 0.5
+			highlight.OutlineTransparency = 0
+			highlight.Adornee = player.Character
+			highlight.Parent = player.Character
+		end
+	end
+	player.CharacterAdded:Connect(function()
+		wait(1)
+		apply()
+	end)
+	if player.Character then
+		apply()
 	end
 end
+
+-- Drawing ESP fonksiyonu
+local function addDrawingESP(player)
+	if player == LocalPlayer then return end
+	local esp = Drawing.new("Text")
+	esp.Text = player.Name
+	esp.Size = 16
+	esp.Color = Color3.new(1, 0, 0)
+	esp.Center = true
+	esp.Outline = true
+	esp.Visible = true
+
+	RunService.RenderStepped:Connect(function()
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+			esp.Position = Vector2.new(pos.X, pos.Y)
+			esp.Visible = onScreen
+		else
+			esp.Visible = false
+		end
+	end)
+end
+
+-- Tüm oyunculara ESP ekle
+for _, player in ipairs(Players:GetPlayers()) do
+	addHighlightESP(player)
+	addDrawingESP(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	addHighlightESP(player)
+	addDrawingESP(player)
+end)
+
+-- Basit Aimbot
+local aimEnabled = true
+RunService.RenderStepped:Connect(function()
+	if not aimEnabled then return end
+	local closest = nil
+	local shortestDistance = math.huge
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+			local headPos = player.Character.Head.Position
+			local screenPoint, onScreen = Camera:WorldToViewportPoint(headPos)
+			if onScreen then
+				local dist = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+				if dist < shortestDistance then
+					shortestDistance = dist
+					closest = player
+				end
+			end
+		end
+	end
+	if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+		Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Character.Head.Position)
+	end
+end)
+
+-- D-DAY scriptini çalıştır
+loadstring(originalScript)()
