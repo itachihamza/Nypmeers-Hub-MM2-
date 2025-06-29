@@ -1,0 +1,22 @@
+-- Basit Universal ESP
+for _, player in pairs(game.Players:GetPlayers()) do
+	if player ~= game.Players.LocalPlayer then
+		local esp = Drawing.new("Text")
+		esp.Text = player.Name
+		esp.Size = 16
+		esp.Color = Color3.new(1, 0, 0)
+		esp.Center = true
+		esp.Outline = true
+		esp.Visible = true
+
+		game:GetService("RunService").RenderStepped:Connect(function()
+			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				local pos, onscreen = workspace.CurrentCamera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+				esp.Position = Vector2.new(pos.X, pos.Y)
+				esp.Visible = onscreen
+			else
+				esp.Visible = false
+			end
+		end)
+	end
+end
