@@ -123,7 +123,7 @@ end)
 
 -- GUI Oluşturma
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SydearrMM2HubGUI"
+ScreenGui.Name = "NypmeersMM2HubGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game.CoreGui
 
