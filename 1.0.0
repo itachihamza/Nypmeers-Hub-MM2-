@@ -1,11 +1,11 @@
--- Sydearr MM2 Hub v1.6.3 + GUI Menü
+-- Nypmeers MM2 Hub v1.0.0 + GUI Menü
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
-print("Sydearr MM2 Hub v1.6.3 Aktif!")
+print("Nypmeers  MM2 Hub v1.6.3 Aktif!")
 
 -- Coin Toplayıcı
 spawn(function()
