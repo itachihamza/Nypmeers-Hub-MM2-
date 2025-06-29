@@ -1,0 +1,181 @@
+-- Sydearr MM2 Hub v1.6.3 + GUI Menü
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+print("Sydearr MM2 Hub v1.6.3 Aktif!")
+
+-- Coin Toplayıcı
+spawn(function()
+	while wait(0.5) do
+		local CoinFolder = Workspace:FindFirstChild("CoinContainer")
+		if CoinFolder then
+			for _, coin in pairs(CoinFolder:GetChildren()) do
+				if coin:IsA("Part") then
+					pcall(function()
+						coin.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+					end)
+				end
+			end
+		end
+	end
+end)
+
+-- ESP
+local function createESP(player)
+	if player.Character and not player.Character:FindFirstChild("ESP_Highlight") then
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "ESP_Highlight"
+		highlight.FillColor = Color3.fromRGB(255, 0, 0)
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.Parent = player.Character
+	end
+end
+
+-- Rol Etiketi (BillboardGui)
+local function createRoleTag(character, roleText, color)
+	if character and not character:FindFirstChild("RoleTag") then
+		local tag = Instance.new("BillboardGui")
+		tag.Name = "RoleTag"
+		tag.Size = UDim2.new(0, 100, 0, 30)
+		tag.StudsOffset = Vector3.new(0, 3, 0)
+		tag.Adornee = character:WaitForChild("Head")
+		tag.AlwaysOnTop = true
+
+		local label = Instance.new("TextLabel", tag)
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.Text = roleText
+		label.BackgroundTransparency = 1
+		label.TextColor3 = color
+		label.TextStrokeTransparency = 0
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+
+		tag.Parent = character
+	end
+end
+
+-- Oyuncu rollerini takip etmek için tablo
+local playerRoles = {}
+
+-- Katil / Şerif Tespiti ve Role Etiketi
+local function tagRoles()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			local backpack = player:FindFirstChild("Backpack")
+			local character = player.Character
+			local role = "Bilinmiyor"
+
+			local hasGun = false
+			local hasKnife = false
+
+			if backpack then
+				if backpack:FindFirstChild("Gun") then hasGun = true end
+				if backpack:FindFirstChild("Knife") then hasKnife = true end
+			end
+
+			if character:FindFirstChild("Gun") then hasGun = true end
+			if character:FindFirstChild("Knife") then hasKnife = true end
+
+			if hasGun then
+				role = "ŞERİF 🔫"
+				createRoleTag(character, role, Color3.fromRGB(0, 170, 255))
+			elseif hasKnife then
+				role = "KATİL 🔪"
+				createRoleTag(character, role, Color3.fromRGB(255, 0, 0))
+			else
+				-- Eğer önceden role etiketi varsa kaldır
+				local oldTag = character:FindFirstChild("RoleTag")
+				if oldTag then oldTag:Destroy() end
+			end
+
+			playerRoles[player.Name] = role
+		end
+	end
+end
+
+-- Başlangıçta ve karakter eklendiğinde ESP ve RoleTag
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createESP(player)
+		player.CharacterAdded:Connect(function()
+			wait(1)
+			createESP(player)
+		end)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+		wait(1)
+		createESP(player)
+	end)
+end)
+
+-- Roller Sürekli Güncellensin
+spawn(function()
+	while wait(2) do
+		pcall(tagRoles)
+	end
+end)
+
+-- GUI Oluşturma
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SydearrMM2HubGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 220, 0, 300)
+Frame.Position = UDim2.new(1, -230, 0.5, -150)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BackgroundTransparency = 0.3
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Frame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+local Title = Instance.new("TextLabel")
+Title.Text = "Sydearr MM2 Roller"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextScaled = true
+Title.Parent = Frame
+
+-- Oyuncuları listeleme fonksiyonu
+local function updatePlayerList()
+	-- Eski label'ları temizle (Title hariç)
+	for _, child in pairs(Frame:GetChildren()) do
+		if child:IsA("TextLabel") and child ~= Title then
+			child:Destroy()
+		end
+	end
+
+	for playerName, role in pairs(playerRoles) do
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, -10, 0, 25)
+		label.BackgroundTransparency = 0.5
+		label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		label.TextColor3 = (role == "KATİL 🔪" and Color3.fromRGB(255, 0, 0)) or (role == "ŞERİF 🔫" and Color3.fromRGB(0, 170, 255)) or Color3.fromRGB(200, 200, 200)
+		label.Text = playerName .. " - " .. role
+		label.Font = Enum.Font.Gotham
+		label.TextScaled = true
+		label.Parent = Frame
+	end
+end
+
+-- GUI Güncellemesini döngüyle yap
+spawn(function()
+	while wait(2) do
+		pcall(updatePlayerList)
+	end
+end)
+
+print("ESP, Coin çekici, Katil/Şerif etiketi ve GUI aktif!")
