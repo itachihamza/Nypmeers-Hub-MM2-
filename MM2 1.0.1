@@ -1,1 +1,566 @@
+-- [MM2 GUI v5] - Bölüm 1: GUI Arayüzü & Tema Sistemi (kayıtlı)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
 
+-- GUI oluştur
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "MM2_GUI_v5"
+gui.ResetOnSpawn = false
+
+-- Tema Ayarı Kaydı
+local currentTheme = LocalPlayer:GetAttribute("MM2_GUI_Theme") or "Dark"
+
+-- Aç / Kapat Butonu
+local toggle = Instance.new("TextButton", gui)
+toggle.Size = UDim2.new(0, 100, 0, 30)
+toggle.Position = UDim2.new(0, 10, 0, 10)
+toggle.Text = "GUI Aç/Kapat"
+toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Font = Enum.Font.SourceSansBold
+toggle.TextSize = 14
+
+-- Ana Menü
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 440, 0, 380)
+frame.Position = UDim2.new(0.5, -220, 0.5, -190)
+frame.BackgroundColor3 = currentTheme == "Dark" and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(240, 240, 240)
+frame.Visible = false
+frame.Active = true
+frame.Draggable = true
+
+-- Başlık
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "MM2 GUI v5 - Legal Sürüm"
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+
+-- Tema Değiştir Butonu
+local themeToggle = Instance.new("TextButton", frame)
+themeToggle.Text = "Tema: " .. (currentTheme == "Dark" and "Koyu" or "Açık")
+themeToggle.Size = UDim2.new(0, 110, 0, 25)
+themeToggle.Position = UDim2.new(1, -120, 0, 2)
+themeToggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+themeToggle.TextColor3 = Color3.new(1, 1, 1)
+themeToggle.Font = Enum.Font.SourceSansBold
+themeToggle.TextSize = 14
+
+-- Tema Değiştirici
+themeToggle.MouseButton1Click:Connect(function()
+	if currentTheme == "Dark" then
+		currentTheme = "Light"
+		frame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+	else
+		currentTheme = "Dark"
+		frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	end
+	themeToggle.Text = "Tema: " .. (currentTheme == "Dark" and "Koyu" or "Açık")
+	LocalPlayer:SetAttribute("MM2_GUI_Theme", currentTheme)
+end)
+
+-- Aç / Kapat Butonuna Tıklanınca
+toggle.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+-- Favori Oyuncu Alanı
+local favoritePlayer = nil
+
+-- Favori Oyuncu Etiketi
+local favLabel = Instance.new("TextLabel", frame)
+favLabel.Position = UDim2.new(0, 10, 0, 40)
+favLabel.Size = UDim2.new(0.5, -20, 0, 25)
+favLabel.Text = "Favori Oyuncu Seç:"
+favLabel.TextColor3 = Color3.new(1, 1, 1)
+favLabel.BackgroundTransparency = 1
+favLabel.TextXAlignment = Enum.TextXAlignment.Left
+favLabel.Font = Enum.Font.SourceSansBold
+favLabel.TextSize = 16
+
+-- Dropdown Butonu
+local favDropdown = Instance.new("TextButton", frame)
+favDropdown.Position = UDim2.new(0, 10, 0, 70)
+favDropdown.Size = UDim2.new(0.5, -20, 0, 25)
+favDropdown.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+favDropdown.TextColor3 = Color3.new(1, 1, 1)
+favDropdown.Text = "Seçilmedi"
+favDropdown.Font = Enum.Font.SourceSans
+favDropdown.TextSize = 14
+
+-- Oyuncu Listesi Gösterimi
+local playerList = Instance.new("TextLabel", frame)
+playerList.Position = UDim2.new(0, 10, 0, 110)
+playerList.Size = UDim2.new(0.95, 0, 0, 220)
+playerList.TextYAlignment = Enum.TextYAlignment.Top
+playerList.TextWrapped = true
+playerList.BackgroundTransparency = 1
+playerList.TextColor3 = Color3.new(1, 1, 1)
+playerList.Font = Enum.Font.SourceSans
+playerList.TextSize = 14
+playerList.Text = "Oyuncular Yükleniyor..."
+
+-- Önceden Kayıtlı Favori Oyuncuyu Yükle
+local savedFavorite = LocalPlayer:GetAttribute("FavoritePlayer")
+if savedFavorite then
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Name == savedFavorite then
+			favoritePlayer = p
+			favDropdown.Text = "⭐ " .. p.Name
+			break
+		end
+	end
+end
+
+-- Dropdown Tıklama ile Favori Seç
+favDropdown.MouseButton1Click:Connect(function()
+	local menu = Instance.new("Frame", gui)
+	menu.Size = UDim2.new(0, 160, 0, #Players:GetPlayers() * 25)
+	menu.Position = UDim2.new(0.5, 0, 0.5, -50)
+	menu.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	menu.Name = "FavMenu"
+	menu.ZIndex = 10
+
+	for i, p in ipairs(Players:GetPlayers()) do
+		local btn = Instance.new("TextButton", menu)
+		btn.Size = UDim2.new(1, 0, 0, 25)
+		btn.Position = UDim2.new(0, 0, 0, (i - 1) * 25)
+		btn.Text = p.Name
+		btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+
+		btn.MouseButton1Click:Connect(function()
+			favoritePlayer = p
+			favDropdown.Text = "⭐ " .. p.Name
+			LocalPlayer:SetAttribute("FavoritePlayer", p.Name)
+			menu:Destroy()
+		end)
+	end
+end)
+
+-- Oyuncu Listesini Güncelle
+RunService.RenderStepped:Connect(function()
+	local text = "Oyuncular:\n"
+	for _, p in ipairs(Players:GetPlayers()) do
+		local isFav = (p == favoritePlayer) and "⭐" or ""
+		local isFriend = p:IsFriendsWith(LocalPlayer.UserId) and "[Arkadaş]" or ""
+		text = text .. "- " .. p.Name .. " " .. isFav .. " " .. isFriend .. "\n"
+	end
+	playerList.Text = text
+end)
+-- Rol Tahmin Sistemi
+local function guessRoles()
+	local guesses = {}
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p == LocalPlayer then continue end
+		local char = p.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
+
+		local hrp = char.HumanoidRootPart
+		local hasWeapon = char:FindFirstChild("Gun") or char:FindFirstChild("Knife")
+
+		if not hasWeapon then
+			local dist = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+			local isNear = dist < 20
+			local isMoving = char:FindFirstChild("Humanoid") and char.Humanoid.MoveDirection.Magnitude > 0
+
+			if isNear and isMoving then
+				table.insert(guesses, {player = p, role = "Şüpheli Katil"})
+			end
+		else
+			table.insert(guesses, {player = p, role = (char:FindFirstChild("Gun") and "Şerif") or "Katil"})
+		end
+	end
+
+	return guesses
+end
+
+-- Oyuncu Listesi Güncellenmiş Hali (Tahmin Etiketi ile)
+RunService.RenderStepped:Connect(function()
+	local guesses = guessRoles()
+	local text = "Oyuncular:\n"
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		local isFav = (p == favoritePlayer) and "⭐" or ""
+		local isFriend = p:IsFriendsWith(LocalPlayer.UserId) and "[Arkadaş]" or ""
+		local guessTag = ""
+
+		for _, g in ipairs(guesses) do
+			if g.player == p then
+				guessTag = "[" .. g.role .. "]"
+			end
+		end
+
+		text = text .. "- " .. p.Name .. " " .. isFav .. " " .. isFriend .. " " .. guessTag .. "\n"
+	end
+
+	playerList.Text = text
+end)
+-- MiniMap Frame
+local miniMap = Instance.new("Frame", frame)
+miniMap.Size = UDim2.new(0.48, 0, 0, 140)
+miniMap.Position = UDim2.new(0.52, 0, 0, 40)
+miniMap.BackgroundColor3 = currentTheme == "Dark" and Color3.fromRGB(70, 70, 70) or Color3.fromRGB(200, 200, 200)
+miniMap.BorderSizePixel = 0
+miniMap.ClipsDescendants = true
+
+-- MiniMap Başlık
+local miniTitle = Instance.new("TextLabel", miniMap)
+miniTitle.Size = UDim2.new(1, 0, 0, 25)
+miniTitle.BackgroundTransparency = 1
+miniTitle.Text = "Mini Harita"
+miniTitle.TextColor3 = Color3.new(1,1,1)
+miniTitle.Font = Enum.Font.SourceSansBold
+miniTitle.TextSize = 18
+
+-- MiniMap İçine Nokta Yerleştirme Fonksiyonu
+local function createDot(color)
+	local dot = Instance.new("Frame", miniMap)
+	dot.Size = UDim2.new(0, 8, 0, 8)
+	dot.BackgroundColor3 = color
+	dot.AnchorPoint = Vector2.new(0.5, 0.5)
+	dot.BorderSizePixel = 0
+	dot.Name = "Dot"
+	dot.ZIndex = 5
+	return dot
+end
+
+-- Mini Harita Güncellemesi
+RunService.RenderStepped:Connect(function()
+	-- Önce tüm eski noktaları temizle
+	for _, child in ipairs(miniMap:GetChildren()) do
+		if child.Name == "Dot" then
+			child:Destroy()
+		end
+	end
+
+	local mapAreaSize = 1000 -- MM2 harita boyutu yaklaşık
+	local localChar = LocalPlayer.Character
+	if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+	local localPos = localChar.HumanoidRootPart.Position
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		local char = p.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			local pos = char.HumanoidRootPart.Position
+			-- Pozisyonu mini haritaya ölçekle
+			local relativePos = Vector3.new(pos.X - localPos.X, 0, pos.Z - localPos.Z)
+
+			local dotX = 0.5 + (relativePos.X / mapAreaSize)
+			local dotY = 0.5 + (relativePos.Z / mapAreaSize)
+
+			-- Dot ekle (mini harita alanı içinde sınırla)
+			if dotX >= 0 and dotX <= 1 and dotY >= 0 and dotY <= 1 then
+				local color =
+					p == LocalPlayer and Color3.fromRGB(0, 255, 0) or
+					p == favoritePlayer and Color3.fromRGB(255, 255, 0) or
+					Color3.fromRGB(0, 170, 255)
+
+				local dot = createDot(color)
+				dot.Position = UDim2.new(dotX, 0, dotY, 0)
+			end
+		end
+	end
+end)
+-- Sunucu Bilgi Label
+local serverInfoLabel = Instance.new("TextLabel", frame)
+serverInfoLabel.Position = UDim2.new(0, 10, 0, 185)
+serverInfoLabel.Size = UDim2.new(0.5, 0, 0, 25)
+serverInfoLabel.BackgroundTransparency = 1
+serverInfoLabel.TextColor3 = currentTheme == "Dark" and Color3.fromRGB(200, 200, 200) or Color3.fromRGB(40, 40, 40)
+serverInfoLabel.Font = Enum.Font.SourceSansBold
+serverInfoLabel.TextSize = 16
+serverInfoLabel.Text = "Sunucu Bilgisi Yükleniyor..."
+
+-- Ping Label
+local pingLabel = Instance.new("TextLabel", frame)
+pingLabel.Position = UDim2.new(0, 10, 0, 215)
+pingLabel.Size = UDim2.new(0.5, 0, 0, 25)
+pingLabel.BackgroundTransparency = 1
+pingLabel.TextColor3 = currentTheme == "Dark" and Color3.fromRGB(200, 200, 200) or Color3.fromRGB(40, 40, 40)
+pingLabel.Font = Enum.Font.SourceSansBold
+pingLabel.TextSize = 16
+pingLabel.Text = "Ping: ..."
+
+-- Ping Hesaplama İçin
+local pingStart = tick()
+local pingValue = 0
+
+-- Ping ölçmek için boş RemoteEvent kullanımı (yerel)
+local PingRemote = Instance.new("RemoteEvent")
+PingRemote.Name = "PingRemote"
+PingRemote.Parent = gui
+
+PingRemote.OnClientEvent:Connect(function()
+	pingValue = (tick() - pingStart) * 1000 -- ms cinsinden
+end)
+
+-- Ping ölçümü başlat
+local function sendPing()
+	pingStart = tick()
+	PingRemote:FireServer()
+end
+
+-- Ping'i güncelle
+RunService.RenderStepped:Connect(function()
+	serverInfoLabel.Text = "Sunucu Oyuncu Sayısı: " .. tostring(#Players:GetPlayers())
+	pingLabel.Text = string.format("Ping: %d ms", math.floor(pingValue))
+end)
+
+-- 1 saniyede bir ping gönder
+while true do
+	sendPing()
+	wait(1)
+end
+-- Sunucu Değiştir Butonu
+local changeServerBtn = Instance.new("TextButton", frame)
+changeServerBtn.Size = UDim2.new(0, 130, 0, 30)
+changeServerBtn.Position = UDim2.new(0.5, -65, 1, -40)
+changeServerBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+changeServerBtn.TextColor3 = Color3.new(1, 1, 1)
+changeServerBtn.Text = "Sunucu Değiştir"
+changeServerBtn.Font = Enum.Font.SourceSansBold
+changeServerBtn.TextSize = 16
+
+-- Otomatik Yeniden Bağlanma Etiketi
+local reconnectLabel = Instance.new("TextLabel", frame)
+reconnectLabel.Size = UDim2.new(0.5, 0, 0, 25)
+reconnectLabel.Position = UDim2.new(0.5, 10, 1, -40)
+reconnectLabel.BackgroundTransparency = 1
+reconnectLabel.TextColor3 = currentTheme == "Dark" and Color3.fromRGB(200, 200, 200) or Color3.fromRGB(40, 40, 40)
+reconnectLabel.Font = Enum.Font.SourceSansItalic
+reconnectLabel.TextSize = 14
+reconnectLabel.Text = "Otomatik Yeniden Bağlanma: Kapalı"
+
+local reconnectEnabled = false
+
+-- Sunucu değiştirme fonksiyonu
+local function changeServer()
+	-- MM2 oyun PlaceId
+	local placeId = game.PlaceId
+	-- TeleportService ile yeni sunucuya geçiş
+	TeleportService:Teleport(placeId, LocalPlayer)
+end
+
+-- Butona tıklayınca sunucu değiştir
+changeServerBtn.MouseButton1Click:Connect(function()
+	changeServer()
+end)
+
+-- Otomatik yeniden bağlanmayı dinle
+LocalPlayer.OnTeleport:Connect(function(state)
+	if state == Enum.TeleportState.Started then
+		if reconnectEnabled then
+			reconnectLabel.Text = "Yeniden bağlanılıyor..."
+		end
+	end
+end)
+
+-- Otomatik yeniden bağlanma aç/kapa butonu
+local toggleReconnectBtn = Instance.new("TextButton", frame)
+toggleReconnectBtn.Size = UDim2.new(0, 150, 0, 25)
+toggleReconnectBtn.Position = UDim2.new(0.5, -75, 1, -80)
+toggleReconnectBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+toggleReconnectBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleReconnectBtn.Text = "Otomatik Yeniden Bağlanma: Kapalı"
+toggleReconnectBtn.Font = Enum.Font.SourceSansBold
+toggleReconnectBtn.TextSize = 14
+
+toggleReconnectBtn.MouseButton1Click:Connect(function()
+	reconnectEnabled = not reconnectEnabled
+	toggleReconnectBtn.Text = "Otomatik Yeniden Bağlanma: " .. (reconnectEnabled and "Açık" or "Kapalı")
+	reconnectLabel.Text = "Durum: " .. (reconnectEnabled and "Açık" or "Kapalı")
+end)
+-- SESLİ UYARI: Katil yaklaştığında ses çalar
+local SoundService = game:GetService("SoundService")
+local alertSound = Instance.new("Sound", SoundService)
+alertSound.SoundId = "rbxassetid://1843525066" -- Uyarı sesi örneği
+alertSound.Volume = 0.5
+alertSound.Looped = false
+
+local killerNearThreshold = 15 -- Katil kaç metre içinde ise uyarı çalar
+local killerAlertCooldown = false
+
+-- Favori oyuncu yaklaştığında bildirim (GUI’de)
+local function checkFavoriteProximity()
+	if not favoritePlayer or not favoritePlayer.Character or not favoritePlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+	local localHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not localHRP then return end
+
+	local dist = (favoritePlayer.Character.HumanoidRootPart.Position - localHRP.Position).Magnitude
+	if dist < 20 then
+		favDropdown.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Altın sarısı yanar
+	else
+		favDropdown.BackgroundColor3 = currentTheme == "Dark" and Color3.fromRGB(70, 70, 70) or Color3.fromRGB(200, 200, 200)
+	end
+end
+
+-- Minimap için Katil/Şerif ekstra işaret
+local function getRoleColor(p)
+	if not p.Character then return Color3.fromRGB(0, 170, 255) end
+	if p.Character:FindFirstChild("Knife") then
+		return Color3.fromRGB(255, 0, 0) -- Kırmızı katil
+	elseif p.Character:FindFirstChild("Gun") then
+		return Color3.fromRGB(0, 255, 0) -- Yeşil şerif
+	elseif p == favoritePlayer then
+		return Color3.fromRGB(255, 255, 0) -- Sarı favori
+	else
+		return Color3.fromRGB(0, 170, 255) -- Mavi normal
+	end
+end
+
+-- Gelişmiş Tema Seçenekleri (Koyu, Açık, Kırmızı, Mavi)
+local themes = {
+	Dark = {bg = Color3.fromRGB(45, 45, 45), fg = Color3.new(1, 1, 1)},
+	Light = {bg = Color3.fromRGB(240, 240, 240), fg = Color3.fromRGB(0, 0, 0)},
+	Red = {bg = Color3.fromRGB(60, 0, 0), fg = Color3.fromRGB(1, 0.6, 0.6)},
+	Blue = {bg = Color3.fromRGB(0, 0, 60), fg = Color3.fromRGB(0.6, 0.6, 1)},
+}
+
+local themeNames = {"Dark", "Light", "Red", "Blue"}
+local currentThemeIndex = 1
+
+-- Tema değiştirme butonuna sağ tıklama (tema değiştirici açar)
+themeToggle.MouseButton2Click:Connect(function()
+	currentThemeIndex = currentThemeIndex % #themeNames + 1
+	currentTheme = themeNames[currentThemeIndex]
+	local theme = themes[currentTheme]
+	frame.BackgroundColor3 = theme.bg
+	title.TextColor3 = theme.fg
+	favLabel.TextColor3 = theme.fg
+	playerList.TextColor3 = theme.fg
+	serverInfoLabel.TextColor3 = theme.fg
+	pingLabel.TextColor3 = theme.fg
+	reconnectLabel.TextColor3 = theme.fg
+	toggleReconnectBtn.TextColor3 = theme.fg
+	changeServerBtn.TextColor3 = theme.fg
+	favDropdown.BackgroundColor3 = theme.bg
+	favDropdown.TextColor3 = theme.fg
+	miniMap.BackgroundColor3 = theme.bg
+	miniTitle.TextColor3 = theme.fg
+	LocalPlayer:SetAttribute("MM2_GUI_Theme", currentTheme)
+	themeToggle.Text = "Tema: " .. currentTheme
+end)
+
+-- Sunucu değiştirme için filtreleme: Belirli oyuncuları dışla
+local excludedPlayers = {}
+
+local function findServerWithoutExcluded()
+	-- Sadece teleport istek gönder, gerçek filtrelemeyi serverda yapmanız gerekir
+	TeleportService:Teleport(game.PlaceId, LocalPlayer)
+	-- Detaylı filtreleme API Roblox'ta kısıtlıdır, burada simüle ediyoruz
+end
+
+changeServerBtn.MouseButton1Click:Connect(function()
+	findServerWithoutExcluded()
+end)
+
+-- Otomatik yeniden bağlanmada zamanlayıcı ve deneme sayısı
+local maxReconnectAttempts = 5
+local reconnectAttempts = 0
+
+toggleReconnectBtn.MouseButton1Click:Connect(function()
+	reconnectEnabled = not reconnectEnabled
+	reconnectAttempts = 0
+	toggleReconnectBtn.Text = "Otomatik Yeniden Bağlanma: " .. (reconnectEnabled and "Açık" or "Kapalı")
+	reconnectLabel.Text = "Durum: " .. (reconnectEnabled and "Açık" or "Kapalı")
+end)
+
+LocalPlayer.OnTeleport:Connect(function(state)
+	if state == Enum.TeleportState.Started and reconnectEnabled then
+		reconnectAttempts = reconnectAttempts + 1
+		if reconnectAttempts <= maxReconnectAttempts then
+			reconnectLabel.Text = "Yeniden bağlanıyor... (" .. reconnectAttempts .. "/" .. maxReconnectAttempts .. ")"
+		else
+			reconnectLabel.Text = "Yeniden bağlanma denemesi sınırı aşıldı."
+		end
+	end
+end)
+
+-- Ana Update Döngüsü
+RunService.RenderStepped:Connect(function()
+	-- Katil yaklaştıysa sesli uyarı
+	local killerNearby = false
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("Knife") then
+			local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+			local localHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if hrp and localHRP then
+				local dist = (hrp.Position - localHRP.Position).Magnitude
+				if dist < killerNearThreshold then
+					killerNearby = true
+					break
+				end
+			end
+		end
+	end
+
+	if killerNearby and not killerAlertCooldown then
+		alertSound:Play()
+		killerAlertCooldown = true
+		delay(5, function()
+			killerAlertCooldown = false
+		end)
+	end
+
+	-- Favori oyuncu yakın mı?
+	checkFavoriteProximity()
+
+	-- Tema renk güncellemesi (tutarlı kalması için)
+	local theme = themes[currentTheme] or themes.Dark
+	frame.BackgroundColor3 = theme.bg
+	title.TextColor3 = theme.fg
+	favLabel.TextColor3 = theme.fg
+	playerList.TextColor3 = theme.fg
+	serverInfoLabel.TextColor3 = theme.fg
+	pingLabel.TextColor3 = theme.fg
+	reconnectLabel.TextColor3 = theme.fg
+	toggleReconnectBtn.TextColor3 = theme.fg
+	changeServerBtn.TextColor3 = theme.fg
+	favDropdown.BackgroundColor3 = theme.bg
+	favDropdown.TextColor3 = theme.fg
+	miniMap.BackgroundColor3 = theme.bg
+	miniTitle.TextColor3 = theme.fg
+end)
+
+-- Minimap dot rengini rol bazında dinamik yap
+RunService.RenderStepped:Connect(function()
+	-- Önceki dotları temizle
+	for _, child in ipairs(miniMap:GetChildren()) do
+		if child.Name == "Dot" then
+			child:Destroy()
+		end
+	end
+
+	local mapAreaSize = 1000
+	local localChar = LocalPlayer.Character
+	if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+	local localPos = localChar.HumanoidRootPart.Position
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		local char = p.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			local pos = char.HumanoidRootPart.Position
+			local relativePos = Vector3.new(pos.X - localPos.X, 0, pos.Z - localPos.Z)
+			local dotX = 0.5 + (relativePos.X / mapAreaSize)
+			local dotY = 0.5 + (relativePos.Z / mapAreaSize)
+
+			if dotX >= 0 and dotX <= 1 and dotY >= 0 and dotY <= 1 then
+				local color = getRoleColor(p)
+				local dot = Instance.new("Frame", miniMap)
+				dot.Size = UDim2.new(0, 8, 0, 8)
+				dot.BackgroundColor3 = color
+				dot.AnchorPoint = Vector2.new(0.5, 0.5)
+				dot.BorderSizePixel = 0
+				dot.Name = "Dot"
+				dot.ZIndex = 5
+				dot.Position = UDim2.new(dotX, 0, dotY, 0)
+			end
+		end
+	end
+end)
